@@ -594,17 +594,118 @@
       60% { transform: scale(1); }
     }
 
-    /* Responsive */
+    /* Responsive - Large desktop (≥1024px) */
+    @media (min-width: 1024px) {
+      .container { max-width: 960px; }
+      .date-list { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    /* Responsive - Tablet (768px ~ 1023px) */
+    @media (max-width: 1023px) and (min-width: 768px) {
+      .container { max-width: 720px; }
+      .date-list { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    /* Responsive - Phone landscape / small tablet (541px ~ 767px) */
+    @media (max-width: 767px) and (min-width: 541px) {
+      .date-list { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    }
+
+    /* Responsive - Phone portrait (≤540px) */
     @media (max-width: 540px) {
-      .header h1 { font-size: 22px; }
+      .header { margin-bottom: 28px; }
+      .header h1 { font-size: 22px; letter-spacing: 1px; }
+      .header p { font-size: 13px; }
       .header-emoji { font-size: 48px; }
-      .add-form { flex-direction: column; }
-      .add-btn { width: 100%; }
-      .container { padding: 24px 16px 60px; }
+      .container { padding: 20px 12px 60px; }
+
+      .progress-section { padding: 18px 16px; margin-bottom: 24px; }
+      .progress-header .count { font-size: 14px; }
+
+      .add-section { padding: 18px 16px; margin-bottom: 24px; }
+      .add-section h2 { font-size: 16px; margin-bottom: 12px; }
+      .add-form { flex-direction: column; gap: 10px; }
+      .add-form input { padding: 10px 14px; font-size: 14px; }
+      .add-btn { width: 100%; padding: 10px; }
+      .emoji-picker { gap: 5px; }
+      .emoji-btn { width: 32px; height: 32px; font-size: 16px; }
+
       .date-list { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-      .date-item { padding: 16px 10px 14px; }
-      .date-emoji { font-size: 30px; }
+      .date-list h2 { font-size: 16px; }
+      .date-item { padding: 16px 10px 14px; gap: 8px; }
+      .date-emoji { font-size: 30px; margin-top: 2px; }
       .date-text { font-size: 13px; }
+      .date-completed { font-size: 10px; padding: 2px 6px; }
+      .check-circle { width: 22px; height: 22px; font-size: 11px; top: 8px; right: 8px; }
+      .delete-btn { width: 22px; height: 22px; font-size: 12px; bottom: 6px; right: 8px; }
+
+      .modal-box { padding: 24px 20px 18px; width: 290px; }
+      .modal-title { font-size: 15px; margin-bottom: 16px; }
+      .modal-date-input { padding: 10px 14px; font-size: 15px; }
+      .modal-btn { padding: 9px; font-size: 13px; }
+
+      .footer { margin-top: 40px; font-size: 12px; }
+      .toast { font-size: 13px; padding: 10px 20px; bottom: 24px; }
+    }
+
+    /* Responsive - Very small phone (≤360px) */
+    @media (max-width: 360px) {
+      .header h1 { font-size: 20px; }
+      .header-emoji { font-size: 40px; }
+      .container { padding: 16px 10px 50px; }
+      .date-list { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .date-item { padding: 14px 8px 12px; }
+      .date-emoji { font-size: 26px; }
+      .date-text { font-size: 12px; }
+      .emoji-btn { width: 28px; height: 28px; font-size: 14px; }
+    }
+
+    /* Sync Status */
+    .sync-status {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 2px 12px var(--shadow);
+      font-size: 12px;
+      color: var(--text-light);
+      z-index: 100;
+      transition: opacity 0.3s;
+    }
+
+    .sync-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+
+    .sync-dot.syncing {
+      background: #f0ad4e;
+      animation: pulse 1.5s ease infinite;
+    }
+
+    .sync-dot.synced {
+      background: var(--green-dark);
+    }
+
+    .sync-dot.offline {
+      background: #ccc;
+    }
+
+    .sync-dot.error {
+      background: #e74c3c;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
     }
 
     /* Scrollbar */
@@ -691,9 +792,36 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
+  <!-- Sync Status -->
+  <div class="sync-status" id="syncStatus">
+    <span class="sync-dot" id="syncDot"></span>
+    <span id="syncText">连接中...</span>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
   <script>
+    // ===== Firebase Config =====
+    // ⚠️ 请替换为你自己的 Firebase 配置
+    // 1. 去 https://console.firebase.google.com/ 创建项目
+    // 2. 创建 Realtime Database（选择测试模式）
+    // 3. 在项目设置中获取配置信息，替换下面的内容
+    const firebaseConfig = {
+      apiKey: "AIzaSyBFb_uLIuxHmGfLGPBGl3qh4XTYwpWWcLo",
+      authDomain: "date-list-2026-503ac.firebaseapp.com",
+      databaseURL: "https://date-list-2026-503ac-default-rtdb.firebaseio.com",
+      projectId: "date-list-2026-503ac",
+      storageBucket: "date-list-2026-503ac.firebasestorage.app",
+      messagingSenderId: "791824703986",
+      appId: "1:791824703986:web:226a6107392a50f65dcb6b",
+      measurementId: "G-M97NX8S82L"
+    };
+
     // ===== Data =====
     const STORAGE_KEY = '2026_date_list';
+    const DB_PATH = 'dateList'; // Realtime Database 中的数据路径
 
     const defaultItems = [
       { id: 1, text: '看一场电影', emoji: '🎬', completed: false, completedDate: '' },
@@ -711,26 +839,106 @@
       { id: 13, text: '一起开卡丁车', emoji: '🏎️', completed: false, completedDate: '' },
     ];
 
-    let dateItems = loadData();
+    let dateItems = [];
     let selectedEmoji = '💕';
+    let dbRef = null;
+    let isFirebaseReady = false;
+    let isWriting = false; // 防止写入触发重复读取
 
-    // ===== Storage =====
-    function loadData() {
+    // ===== Firebase Init =====
+    function initFirebase() {
+      try {
+        if (firebaseConfig.apiKey === "YOUR_API_KEY") {
+          console.log('Firebase 未配置，使用本地存储模式');
+          updateSyncStatus('offline', '本地模式（未配置 Firebase）');
+          dateItems = loadLocalData();
+          render();
+          return;
+        }
+
+        firebase.initializeApp(firebaseConfig);
+        dbRef = firebase.database().ref(DB_PATH);
+
+        // 监听实时数据变化
+        dbRef.on('value', (snapshot) => {
+          if (isWriting) return; // 忽略自己写入触发的变化
+          const data = snapshot.val();
+          if (data && Array.isArray(data)) {
+            dateItems = data.map(item => ({
+              ...item,
+              completedDate: item.completedDate || ''
+            }));
+            // 同步到本地
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(dateItems));
+            render();
+            updateSyncStatus('synced', '已同步');
+          } else if (!data) {
+            // 数据库为空，上传本地数据
+            const localData = loadLocalData();
+            if (localData.length > 0) {
+              uploadToFirebase(localData);
+            } else {
+              dateItems = [...defaultItems];
+              uploadToFirebase(dateItems);
+            }
+          }
+        });
+
+        isFirebaseReady = true;
+        updateSyncStatus('syncing', '连接中...');
+      } catch (e) {
+        console.error('Firebase 初始化失败:', e);
+        updateSyncStatus('offline', '本地模式');
+        dateItems = loadLocalData();
+        render();
+      }
+    }
+
+    // ===== Upload to Firebase =====
+    function uploadToFirebase(data) {
+      if (!dbRef) return;
+      isWriting = true;
+      dbRef.set(data).then(() => {
+        isWriting = false;
+        updateSyncStatus('synced', '已同步');
+      }).catch((e) => {
+        isWriting = false;
+        console.error('上传失败:', e);
+        updateSyncStatus('error', '同步失败');
+      });
+    }
+
+    // ===== Sync Status UI =====
+    function updateSyncStatus(state, text) {
+      const dot = document.getElementById('syncDot');
+      const label = document.getElementById('syncText');
+      dot.className = 'sync-dot ' + state;
+      label.textContent = text;
+    }
+
+    // ===== Local Storage =====
+    function loadLocalData() {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const data = JSON.parse(saved);
-          return data.map(item => ({
-            ...item,
-            completedDate: item.completedDate || ''
-          }));
+          if (Array.isArray(data) && data.length > 0) {
+            return data.map(item => ({
+              ...item,
+              completedDate: item.completedDate || ''
+            }));
+          }
         }
       } catch (e) {}
       return [...defaultItems];
     }
 
+    // ===== Save Data (write to both) =====
     function saveData() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(dateItems));
+      if (isFirebaseReady && dbRef) {
+        uploadToFirebase(dateItems);
+      }
     }
 
     // ===== Render =====
@@ -928,7 +1136,7 @@
 
     // ===== Init =====
     createFloatingHearts();
-    render();
+    initFirebase();
   </script>
 </body>
 </html>
